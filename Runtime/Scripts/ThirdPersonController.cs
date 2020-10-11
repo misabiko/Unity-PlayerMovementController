@@ -3,15 +3,24 @@ using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(PlayerInput))]
-public class PlayerMovement : MonoBehaviour {
+public class ThirdPersonController : MonoBehaviour {
 	public Transform camTransform;
-	public PlayerData data;
+	public float speed;
+	public float sprintSpeed;
+	public float accel;
+	public float deccel;
+	public float turnSpeed;
+
+	public float jumpForce;
 
 	new Rigidbody rigidbody;
 
 	Vector2 moveInput;
 	Vector3 moveDirection;
 	bool sprinting;
+
+	float groundCheckDist = 0.05f;
+	float groundCheckStartPoint = 0.1f;	//How high inside the collider the ray should start
 
 	void Awake() {
 		rigidbody = GetComponent<Rigidbody>();
@@ -43,17 +52,17 @@ public class PlayerMovement : MonoBehaviour {
 
 	void FixedUpdate() {
 		if (moveDirection != Vector3.zero) {
-			Vector3 force = moveDirection * data.accel;
+			Vector3 force = moveDirection * accel;
 
 			rigidbody.AddForce(force);
-			ClampVelocityXZ(sprinting ? data.sprintSpeed : data.speed);
+			ClampVelocityXZ(sprinting ? sprintSpeed : speed);
 
 			AlignGroundedRotation();
 		}else {
 			Vector3 flatVel = Flatten(rigidbody.velocity);
 			
 			if (flatVel.magnitude > 0.2f)
-				rigidbody.AddForce(-flatVel.normalized * data.deccel);
+				rigidbody.AddForce(-flatVel.normalized * deccel);
 			else
 				ClampVelocityXZ(0f);
 		}
@@ -71,7 +80,7 @@ public class PlayerMovement : MonoBehaviour {
 
 	void AlignGroundedRotation() {
 		Quaternion goalRot = Quaternion.LookRotation(moveDirection);
-		Quaternion slerp = Quaternion.Slerp(transform.rotation, goalRot, data.turnSpeed * moveDirection.magnitude * Time.fixedDeltaTime);
+		Quaternion slerp = Quaternion.Slerp(transform.rotation, goalRot, turnSpeed * moveDirection.magnitude * Time.fixedDeltaTime);
 
 		transform.rotation = slerp;
 	}
@@ -92,10 +101,10 @@ public class PlayerMovement : MonoBehaviour {
 
 	void OnJump(InputAction.CallbackContext ctx) {
 		if (IsGrounded())
-			rigidbody.AddForce(data.jumpForce * Vector3.up, ForceMode.Impulse);
+			rigidbody.AddForce(jumpForce * Vector3.up, ForceMode.Impulse);
 	}
 
-	bool IsGrounded() => true;
+	bool IsGrounded() => Physics.Raycast(transform.position + Vector3.down * (1f - groundCheckStartPoint), Vector3.down, groundCheckStartPoint + groundCheckDist, ~gameObject.layer);
 
 	void OnSprint(InputAction.CallbackContext ctx) => sprinting = ctx.ReadValueAsButton();
 }
