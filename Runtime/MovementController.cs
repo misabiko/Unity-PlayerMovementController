@@ -3,15 +3,18 @@ using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(PlayerInput))]
-public class ThirdPersonController : MonoBehaviour {
+public class MovementController : MonoBehaviour {
 	public Transform camTransform;
-	public float speed;
-	public float sprintSpeed;
-	public float accel;
-	public float deccel;
-	public float turnSpeed;
+	public float turnSpeed = 5;
+	
+	public float speed = 3.5f;
+	public float sprintSpeed = 5f;
+	public float accel = 100f;
+	public float deccel = 80f;
 
-	public float jumpForce;
+	public float jumpForce = 5f;
+
+	public bool firstPerson;
 
 	new Rigidbody rigidbody;
 
@@ -22,13 +25,20 @@ public class ThirdPersonController : MonoBehaviour {
 	float groundCheckDist = 0.05f;
 	float groundCheckStartPoint = 0.1f;	//How high inside the collider the ray should start
 
+	void Reset() {
+		rigidbody = GetComponent<Rigidbody>();
+		
+		if (Camera.main is Camera cam) {
+			camTransform = cam.transform;
+			
+			if (camTransform.IsChildOf(transform))
+				firstPerson = true;
+		}
+	}
+	
 	void Awake() {
 		rigidbody = GetComponent<Rigidbody>();
-
-		Camera cam = Camera.main;
-		if (cam != null)
-			camTransform = cam.transform;
-
+		
 		var playerInput = GetComponent<PlayerInput>();
 
 		playerInput.actions["Move"].started += OnMove;
@@ -43,29 +53,41 @@ public class ThirdPersonController : MonoBehaviour {
 	}
 
 	void Update() {
-		Vector3 camForward = camTransform.forward;
-		camForward.y = 0;
-		camForward.Normalize();
+		if (firstPerson)
+			moveDirection = transform.forward * moveInput.y + transform.right * moveInput.x;
+		else {
+			var camForward = camTransform.forward;
+			camForward.y = 0;
+			camForward.Normalize();
 
-		moveDirection = camForward * moveInput.y + camTransform.right * moveInput.x;
+			moveDirection = camForward * moveInput.y + camTransform.right * moveInput.x;
+		}
 	}
 
 	void FixedUpdate() {
-		if (moveDirection != Vector3.zero) {
-			Vector3 force = moveDirection * accel;
+		if (moveDirection != Vector3.zero)
+			AddMovement();
+		else
+			BreakMovement();
+	}
 
-			rigidbody.AddForce(force);
-			ClampVelocityXZ(sprinting ? sprintSpeed : speed);
+	void AddMovement() {
+		Vector3 force = moveDirection * accel;
 
+		rigidbody.AddForce(force);
+		ClampVelocityXZ(sprinting ? sprintSpeed : speed);
+		
+		if (!firstPerson)
 			AlignGroundedRotation();
-		}else {
-			Vector3 flatVel = Flatten(rigidbody.velocity);
+	}
+
+	void BreakMovement() {
+		Vector3 flatVel = Flatten(rigidbody.velocity);
 			
-			if (flatVel.magnitude > 0.2f)
-				rigidbody.AddForce(-flatVel.normalized * deccel);
-			else
-				ClampVelocityXZ(0f);
-		}
+		if (flatVel.magnitude > 0.2f)
+			rigidbody.AddForce(-flatVel.normalized * deccel);
+		else
+			ClampVelocityXZ(0f);
 	}
 
 	void ClampVelocityXZ(float maxSpeed) {

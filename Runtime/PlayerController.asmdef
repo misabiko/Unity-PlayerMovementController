@@ -1,5 +1,5 @@
 {
-    "name": "io.misabiko.thirdpersoncontroller",
+    "name": "io.misabiko.playercontroller",
     "references": [
         "GUID:4307f53044263cf4b835bd812fc161a4",
         "GUID:75469ad4d38634e559750d17036d5f7c"
@@ -11,6 +11,12 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.cinemachine",
+            "expression": "0.0",
+            "define": "CINEMACHINE_ENABLE"
+        }
+    ],
     "noEngineReferences": false
 }

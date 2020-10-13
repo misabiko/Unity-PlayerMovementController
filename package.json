@@ -1,12 +1,11 @@
 {
-    "name": "io.misabiko.thirdpersoncontroller",
+    "name": "io.misabiko.playercontroller",
     "version": "0.1.0",
-    "displayName": "Third Person Controller",
-    "description": "Generic third person controller using Input System and Cinemachine for use in new projects.",
+    "displayName": "Player Controller",
+    "description": "Generic first and third person controllers using Input System and Cinemachine for use in new projects.",
     "unity": "2019.3",
     "dependencies": {
-        "com.unity.cinemachine": "2.5.0",
-        "com.unity.inputsystem": "1.0.0"
+        "com.unity.inputsystem": "latest"
     },
     "author": {
         "name": "misabiko"
