@@ -1,63 +1,71 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using UnityEngine.InputSystem;
 
-#if CINEMACHINE
-using Cinemachine;
+namespace PlayerController {
+	public class LookController : MonoBehaviour, ILookController {
+		public float camXSensitivity {get; set;}
+		public float camYSensitivity {get; set;}
 
-[RequireComponent(typeof(CinemachineFreeLook))]
-#endif
-public class LookController : MonoBehaviour {
-	public float camXSensitivity = 10f;
-	public float camYSensitivity = 10f;
-	public PlayerInput playerInput;
-	
-#if CINEMACHINE
-	public PlayerInput playerInput;
+		[field: SerializeField]
+		public float Zoom {get; set;} = 1f;
+		public float zoomSensitivity {get; set;} = 0.1f;
 
-	Vector2 lookInput;
-	CinemachineFreeLook cam;
-#else
-	[HideInInspector]
-	public bool cameraLocked = false;
+		public bool cameraLocked = false;
+		public PlayerInput playerInput;
+		public float camDistance = 10f;
 
-	Transform camTransform;
-	Vector2 lookInput;
-	float xRotation;
-#endif
+		public bool firstPerson {get; private set;}
 
-	void Reset() => playerInput = GetComponent<PlayerInput>();
+		Transform camTransform;
+		Vector2 lookInput;
+		float xRotation;
 
-	void Awake() {
-		playerInput.actions["Look"].started += OnLook;
-		playerInput.actions["Look"].performed += OnLook;
-		playerInput.actions["Look"].canceled += OnLook;
-		
-#if CINEMACHINE
-		cam = GetComponent<CinemachineFreeLook>();
-#else
-		camTransform = GetComponentInChildren<Camera>().transform;
-#endif
-	}
+		public Transform target => playerInput.transform;
 
-	void OnLook(InputAction.CallbackContext ctx) => lookInput = ctx.ReadValue<Vector2>();
+		void Reset() {
+			playerInput = GetComponent<PlayerInput>();
 
-	void Update() {
-#if CINEMACHINE
-		if (
-			playerInput.actions["Look"].activeControl?.device is Mouse &&
-			!Mouse.current.rightButton.isPressed
-			) return;
-		
-		cam.m_XAxis.Value += camXSensitivity * lookInput.x;
-		cam.m_YAxis.Value -= camYSensitivity * lookInput.y;
-#else
-		if (!cameraLocked) {
-			transform.Rotate(Vector3.up, camXSensitivity * lookInput.x * Time.deltaTime);
-
-			xRotation -= camYSensitivity * lookInput.y * Time.deltaTime;
-			xRotation = Mathf.Clamp(xRotation, -90f, 90f);
-			camTransform.localRotation = Quaternion.Euler(xRotation, 0, 0);
+			if (firstPerson) {
+				camXSensitivity = 10f;
+				camYSensitivity = 10f;
+			} else {
+				camXSensitivity = 0.1f;
+				camYSensitivity = 0.01f;
+			}
 		}
-#endif
+
+		void Awake() {
+			playerInput.actions["Look"].started += OnLook;
+			playerInput.actions["Look"].performed += OnLook;
+			playerInput.actions["Look"].canceled += OnLook;
+
+
+			playerInput.actions["Zoom"].started += OnZoom;
+			playerInput.actions["Zoom"].performed += OnZoom;
+			playerInput.actions["Zoom"].canceled += OnZoom;
+
+			camTransform = GetComponentInChildren<Camera>().transform;
+		}
+
+		void OnLook(InputAction.CallbackContext ctx) => lookInput = ctx.ReadValue<Vector2>();
+
+		void OnZoom(InputAction.CallbackContext ctx) {
+			camDistance += ctx.ReadValue<float>() * zoomSensitivity;
+		}
+
+		void Update() {
+			if (!cameraLocked) {
+				transform.Rotate(Vector3.up, camXSensitivity * lookInput.x * Time.deltaTime);
+
+				xRotation -= camYSensitivity * lookInput.y * Time.deltaTime;
+				xRotation = Mathf.Clamp(xRotation, -90f, 90f);
+				camTransform.localRotation = Quaternion.Euler(xRotation, 0, 0);
+			}
+		}
+
+		public void SetPerspective(bool firstPerson) => this.firstPerson = firstPerson;
+
+		public void SetTarget(Transform target) => playerInput = target.GetComponent<PlayerInput>();
 	}
 }
